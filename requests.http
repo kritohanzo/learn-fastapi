@@ -1,0 +1,49 @@
+GET http://127.0.0.1:8000/
+
+###
+
+POST http://127.0.0.1:8000/calculate/
+Content-Type: application/json
+
+{
+    "num1": 10,
+    "num2": -32
+}
+
+
+###
+
+GET http://127.0.0.1:8000/users/
+
+###
+
+POST http://127.0.0.1:8000/user/
+Content-Type: application/json
+
+{
+    "id": 1,
+    "name": "John",
+    "age": 10
+}
+
+###
+
+POST http://127.0.0.1:8000/feedback/
+Content-Type: application/json
+
+{
+    "name": "John",
+    "message": "You are good!!!" 
+}
+
+###
+
+POST http://127.0.0.1:8000/create_user/
+Content-Type: application/json
+
+{
+    "name": "John",
+    "email": "test@az.ru",
+    "age": 120,
+    "is_subscribed": true 
+}
