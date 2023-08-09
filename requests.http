@@ -47,3 +47,13 @@ Content-Type: application/json
     "age": 120,
     "is_subscribed": true 
 }
+
+###
+
+POST http://127.0.0.1:8000/login/
+Content-Type: application/json
+
+{
+    "username": "John",
+    "password": "arbuz123"
+}

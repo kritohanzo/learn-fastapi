@@ -1,23 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Cookie, Response, Header, Request, HTTPException
 from fastapi.responses import FileResponse
 from models.calculate import Calculate
-from models.user import User, UserCreate
+from models.user import User, UserCreate, LoginData
 from models.feedback import Feedback
 import uvicorn
+from typing import Union, Annotated
 from models.products import Product
+from datetime import datetime
+from random import shuffle
+import json
 
 app = FastAPI()
 
-fake_users = {
-    1: {"username": "john_doe", "email": "john@example.com", "age": 25},
-    2: {"username": "jane_smith", "email": "jane@example.com", "age": 30},
-}
 
 feedbacks = []
 
 @app.get('/')
 async def root():
+    now = datetime.now()
     response = FileResponse('index.html', 200)
+    response.set_cookie(key='last_visit', value=now)
     return response
 
 @app.post('/calculate/')
@@ -40,9 +42,6 @@ async def get_user_by_id(user_id: int, limit: int = 10):
         return fake_users[user_id]
     return {"error": "User not found"}
 
-@app.post('/user/')
-async def is_adult_user(user: User):
-    return user.model_dump() | {"is_adult": user.age >= 18}
 
 @app.post('/feedback/')
 async def send_feedback(feedback: Feedback):
@@ -104,7 +103,7 @@ async def get_product_by_id(product_id: int):
     return {"error": "Product not found"}
 
 @app.get('/products/search/')
-async def get_all_products(keyword: str, category: str | None = None, limit: int | None = None):
+async def get_all_products(keyword: str, category: Union[str, None] = None, limit: Union[int, None] = None):
     response = []
     for product in sample_products:
         if limit:
@@ -118,6 +117,48 @@ async def get_all_products(keyword: str, category: str | None = None, limit: int
                 response.append(product)
     return response
         
+sessions: dict = dict()
+sample_user = {"username": "John", "password": "arbuz123"}
+fake_users: list = [User(**sample_user)]
+
+@app.post('/login/')
+async def login(login_data: LoginData, response: Response):
+    for user in fake_users:
+        if user.username == login_data.username and user.password == login_data.password:
+            session_token = [char for char in (login_data.username + login_data.password)]
+            shuffle(session_token)
+            session_token = "".join(session_token)
+            sessions[session_token] = user
+            response.set_cookie(key='session_token', value=session_token, httponly=True)
+            return {"message": "куки установлены"}
+    return {"message": "Invalid username or password"}
+
+@app.get('/user/')
+async def is_adult_user(session_token = Cookie()):
+    user = sessions.get(session_token)
+    if user:
+        return user.dict()
+    return {"message": "Unauthorized"}
+
+@app.get("/items/")
+async def read_items(user_agent: Annotated[Union[str, None], Header()] = None):
+    return {"User-Agent": user_agent}
+
+@app.get('/headers/')
+async def get_headers(request: Request):
+    if 'user-agent' not in request.headers or 'accept-language' not in request.headers:
+        raise HTTPException(detail='Required headers not exists', status_code=400)
+    if request.headers['accept-language'].split(',')[0] != "ru-RU" and request.headers['accept-language'].split(',')[0] != 'en-US':
+        raise HTTPException(detail='Accept language must be ru-RU or en-US', status_code=400)
+    return Response(
+        content=json.dumps(
+            {
+                "User-Agent": request.headers['user-agent'],
+                "Accept-Language": request.headers['accept-language']
+            }
+        ), status_code=200
+    )
+
 if __name__ == '__main__':
     uvicorn.run(app="main:app", host="127.0.0.1", port=8000, workers=3, reload=True)
 

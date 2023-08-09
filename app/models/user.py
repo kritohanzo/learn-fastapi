@@ -1,13 +1,16 @@
 from pydantic import BaseModel, EmailStr, PositiveInt, Field
-
+from typing import Union
 
 class User(BaseModel):
-    id: int
-    name: str
-    age: int
+    username: str
+    password: str
 
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
-    age: PositiveInt | None = Field(default=None, lt=130)
+    age: Union[PositiveInt, None] = Field(default=None, lt=130)
     is_subscribed: bool = False
+
+class LoginData(BaseModel):
+    username: str
+    password: str
