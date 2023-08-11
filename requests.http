@@ -7,7 +7,7 @@ Content-Type: application/json
 
 {
     "num1": 10,
-    "num2": -32
+    "num2": -22
 }
 
 
@@ -57,3 +57,35 @@ Content-Type: application/json
     "username": "John",
     "password": "arbuz123"
 }
+
+###
+
+GET http://127.0.0.1:8000/user/
+
+###
+
+POST http://127.0.0.1:8000/login/
+Content-Type: application/json
+
+{
+    "username": "John",
+    "password": "arbuz123",
+    "expires_of_hours": 10
+}
+
+###
+
+GET http://127.0.0.1:8000/protected_resource/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKb2huIiwiZXhwIjoxNjkxNzY1ODE4fQ.Kb9_exugnJYY2W0m-tcCcjCrVSTCLdSeaeBHeiV2bvg
+
+###
+
+GET http://127.0.0.1:8000/admin_resource/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBcnR1ciIsImV4cCI6MTY5MTgwMjE3M30.9grs4UNG5BPvqoFu4DYfzhSPO-3CHN0-HHFlQQQGE5U
+
+###
+
+GET http://127.0.0.1:8000/user_resource/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKb2huIiwiZXhwIjoxNjkxODAyMTkyfQ.Bc5hhjpMnBQh_dpDZFq84W8QY9GYgIBzgjhCCJY4e5U
+
+###

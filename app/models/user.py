@@ -4,6 +4,7 @@ from typing import Union
 class User(BaseModel):
     username: str
     password: str
+    role: str = "user"
 
 class UserCreate(BaseModel):
     name: str
@@ -14,3 +15,4 @@ class UserCreate(BaseModel):
 class LoginData(BaseModel):
     username: str
     password: str
+    expires_of_hours: Union[int, None] = None
