@@ -15,4 +15,4 @@ class UserCreate(BaseModel):
 class LoginData(BaseModel):
     username: str
     password: str
-    expires_of_hours: Union[int, None] = None
+    expires_of_hours: int = 1

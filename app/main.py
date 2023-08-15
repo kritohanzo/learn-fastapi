@@ -12,11 +12,13 @@ from datetime import datetime, timedelta
 from random import shuffle
 import jwt
 import json
+from db.tools import SqliteTools
+from models.models import TodoModel
 import time
 
 app = FastAPI()
-security = HTTPBasic()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# security = HTTPBasic()
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 # feedbacks = []
@@ -188,50 +190,83 @@ sessions: dict = dict()
 # async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
 #     return {"token": token}
 
-sample_user_1 = {"username": "John", "password": "arbuz123", "role": "admin"}
-sample_user_2 = {"username": "Artur", "password": "arbuz123"}
-fake_users: list = {
-    sample_user_1.get("username"): User(**sample_user_1),
-    sample_user_2.get("username"): User(**sample_user_2)
-}
+# sample_user_1 = {"username": "John", "password": "arbuz123", "role": "admin"}
+# sample_user_2 = {"username": "Artur", "password": "arbuz123"}
+# fake_users: list = {
+#     sample_user_1.get("username"): User(**sample_user_1),
+#     sample_user_2.get("username"): User(**sample_user_2)
+# }
 
-def get_user_from_db(username: str):
-    if username in fake_users:
-        return fake_users.get(username)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+# def get_user_from_db(username: str):
+#     if username in fake_users:
+#         return fake_users.get(username)
+#     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-def check_password(user: User, password: str):
-    if not user.password == password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password not valid")
+# def check_password(user: User, password: str):
+#     if not user.password == password:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password not valid")
 
-def create_jwt_token(username: str, expires_of_hours: int = 1) -> dict:
-    return {"auth_token": jwt.encode({"sub": username, "exp": datetime.utcnow() + timedelta(hours=expires_of_hours)}, "TOPSECRET", "HS256")}
+# def create_jwt_token(username: str, expires_of_hours: int) -> dict:
+#     return {"auth_token": jwt.encode({"sub": username, "exp": datetime.utcnow() + timedelta(hours=expires_of_hours)}, "TOPSECRET", "HS256")}
 
-def get_user_from_token(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jwt.decode(token, "TOPSECRET", "HS256", verify=True)
-        return get_user_from_db(payload.get("sub"))
-    except jwt.exceptions.DecodeError or jwt.exceptions.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is not valid")
-    except jwt.exceptions.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+# def get_user_from_token(token: str = Depends(oauth2_scheme)):
+#     try:
+#         payload = jwt.decode(token, "TOPSECRET", "HS256", verify=True)
+#         return get_user_from_db(payload.get("sub"))
+#     except jwt.exceptions.DecodeError or jwt.exceptions.InvalidTokenError:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is not valid")
+#     except jwt.exceptions.ExpiredSignatureError:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
     
-@app.post("/login/")
-async def login(login_data: LoginData):
-    user = get_user_from_db(login_data.username)
-    check_password(user, login_data.password)
-    return create_jwt_token(login_data.username, login_data.expires_of_hours)
+# @app.post("/login/")
+# async def login(login_data: LoginData) -> dict:
+#     user = get_user_from_db(login_data.username)
+#     check_password(user, login_data.password)
+#     return create_jwt_token(login_data.username, login_data.expires_of_hours)
 
-@app.get("/admin_resource/")
-async def jwt_protected(current_user: Annotated[User, Depends(get_user_from_token)]):
-    if not current_user.role == "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be admin to access this")
-    return {"message": f"Congratulations, {current_user.username}! You win this admin resource!"}
+# @app.get("/admin_resource/")
+# async def jwt_protected(current_user: Annotated[User, Depends(get_user_from_token)]):
+#     if not current_user.role == "admin":
+#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be admin to access this")
+#     return {"message": f"Congratulations, {current_user.username}! You win this admin resource!"}
 
-@app.get("/user_resource/")
-async def jwt_protected(current_user: Annotated[User, Depends(get_user_from_token)]):
-    return {"message": f"Congratulations, {current_user.username}! You win this user resource!"}
+# @app.get("/user_resource/")
+# async def jwt_protected(current_user: Annotated[User, Depends(get_user_from_token)]):
+#     return {"message": f"Congratulations, {current_user.username}! You win this user resource!"}
 
-if __name__ == '__main__':
-    uvicorn.run(app="main:app", host="127.0.0.1", port=8000, workers=3, reload=True)
 
+@app.get("/todo/{todo_id}/")
+async def get_todo_by_id(todo_id: int):
+    todo = await SqliteTools.get_todo_by_id(todo_id)
+    if not todo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found"
+        )
+    return todo
+
+@app.post("/todo/")
+async def create_todo(todo_data: TodoModel):
+    todo = await SqliteTools.add_todo(todo_data.title, todo_data.description)
+    return todo
+
+@app.put("/todo/{todo_id}/")
+async def update_todo_by_id(todo_id: int, todo_data: TodoModel):
+    todo = await SqliteTools.update_todo_by_id(
+        todo_id, todo_data.title, todo_data.description, todo_data.completed
+    )
+    return todo
+
+@app.delete("/todo/{todo_id}/")
+async def delete_todo_by_id(todo_id: int):
+    deleted = await SqliteTools.delete_todo_by_id(todo_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found"
+        )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+if __name__ == "__main__":
+    SqliteTools.check_exists_db()
+    uvicorn.run(
+        app="main:app", host="127.0.0.1", port=8000, workers=3, reload=True
+    )
